@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/user.dart';
+import '../services/api_service.dart';
 
 // ─── Auth Provider ────────────────────────────────────────────────────────────
 
@@ -28,33 +29,30 @@ class AuthProvider extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    await Future.delayed(const Duration(milliseconds: 800));
+    try {
+    final result = await ApiService.login(phone, password);
 
-    // Demo login logic
-    final demoUser = User(
-      id: 'demo_user',
-      name: 'Amina Hassan',
-      phone: phone,
-      email: 'amina@example.com',
-      role: UserRole.citizen,
-      createdAt: DateTime.now(),
-      isVerified: true,
-      mtaa: 'Kariakoo',
-      ward: 'Kariakoo',
-      district: 'Ilala',
-      region: 'Dar es Salaam',
-      totalComplaints: 5,
-      resolvedComplaints: 3,
-    );
+    if (result['status'] == 200) {
+      _currentUser = User.fromJson(result['data']['user']);
 
-    _currentUser = demoUser;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('current_user', jsonEncode(demoUser.toJson()));
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        'current_user',
+        jsonEncode(result['data']['user']),
+      );
 
-    _isLoading = false;
-    notifyListeners();
-    return true;
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    }
+  } catch (e) {
+    debugPrint('Login error: $e');
   }
+
+  _isLoading = false;
+  notifyListeners();
+  return false;
+}
 
   Future<bool> register({
     required String name,
