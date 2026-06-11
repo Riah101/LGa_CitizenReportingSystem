@@ -26,11 +26,71 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!_formKey.currentState!.validate()) return;
     final auth = context.read<AuthProvider>();
     final ok = await auth.login(_phoneCtrl.text, _passwordCtrl.text);
-    if (ok && mounted) {
+    if (!mounted) return;
+    if (ok) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const HomeScreen()),
       );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(auth.loginError ?? AppLocalizations.of(context).loginFailed),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
+  }
+
+  void _showForgotPassword() {
+    final l = AppLocalizations.of(context);
+    final phoneCtrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.forgotPasswordTitle),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(l.forgotPasswordBody,
+                style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(
+                      color: AppTheme.textSecondary,
+                    )),
+            const SizedBox(height: 16),
+            TextField(
+              controller: phoneCtrl,
+              keyboardType: TextInputType.phone,
+              decoration: InputDecoration(
+                labelText: l.phoneNumber,
+                prefixIcon: const Icon(Icons.phone_outlined),
+                hintText: '+255 7XX XXX XXX',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(l.cancel),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(l.resetCodeSent),
+                    backgroundColor: AppTheme.primaryGreen,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
+            },
+            child: Text(l.sendResetCode),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -146,7 +206,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton(
-                        onPressed: () {},
+                        onPressed: _showForgotPassword,
                         child: Text(l.forgotPassword),
                       ),
                     ),

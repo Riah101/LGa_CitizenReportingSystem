@@ -6,6 +6,7 @@ import '../../models/complaint.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/complaint_provider.dart';
 import '../../utils/app_theme.dart';
+import '../../utils/tanzania_locations.dart';
 
 class SubmitComplaintScreen extends StatefulWidget {
   const SubmitComplaintScreen({super.key});
@@ -19,23 +20,14 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen> {
   final _titleCtrl = TextEditingController();
   final _descriptionCtrl = TextEditingController();
   final _mtaaCtrl = TextEditingController();
-  final _wardCtrl = TextEditingController();
 
   ComplaintCategory? _category;
-  String? _selectedDistrict;
-  String? _selectedRegion;
+  String? _selectedWard;
   bool _isAnonymous = false;
   bool _isUrgent = false;
   int _currentStep = 0;
   bool _isSubmitting = false;
   Complaint? _submittedComplaint;
-
-  static const _regions = [
-    'Dar es Salaam', 'Arusha', 'Mwanza', 'Dodoma', 'Morogoro',
-    'Tanga', 'Kilimanjaro', 'Mbeya', 'Zanzibar', 'Pemba', 'Lindi',
-    'Mara', 'Mtwara', 'Pwani', 'Ruvuma', 'Shinyanga', 'Singida',
-    'Tabora', 'Kigoma', 'Iringa', 'Rukwa', 'Kagera',
-  ];
 
   static const _categories = [
     (ComplaintCategory.infrastructure, Icons.construction_outlined, '🏗️'),
@@ -66,9 +58,36 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    final l = AppLocalizations.of(context);
+
+    // Validate step 0 — category
     if (_category == null) {
-      _showSnack(AppLocalizations.of(context).selectCategory);
+      _showSnack(l.selectCategory);
+      setState(() => _currentStep = 0);
+      return;
+    }
+
+    // Validate step 1 — title & description
+    if (_titleCtrl.text.trim().isEmpty) {
+      _showSnack(l.fieldRequired);
+      setState(() => _currentStep = 1);
+      return;
+    }
+    if (_descriptionCtrl.text.trim().length < 20) {
+      _showSnack(l.isSwahili
+          ? 'Tafadhali elezea zaidi (herufi 20+)'
+          : 'Please provide more details (20+ characters)');
+      setState(() => _currentStep = 1);
+      return;
+    }
+
+    // Validate step 2 — location
+    if (_selectedWard == null) {
+      _showSnack(l.fieldRequired);
+      return;
+    }
+    if (_mtaaCtrl.text.trim().isEmpty) {
+      _showSnack(l.fieldRequired);
       return;
     }
 
@@ -83,9 +102,9 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen> {
           description: _descriptionCtrl.text,
           category: _category!,
           mtaa: _mtaaCtrl.text,
-          ward: _wardCtrl.text,
-          district: _selectedDistrict ?? '',
-          region: _selectedRegion ?? '',
+          ward: _selectedWard!,
+          district: 'Kinondoni',
+          region: 'Dar es Salaam',
           isAnonymous: _isAnonymous,
           isUrgent: _isUrgent,
         );
@@ -113,12 +132,24 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen> {
       appBar: AppBar(
         title: Text(l.submitComplaint),
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(4),
-          child: LinearProgressIndicator(
-            value: (_currentStep + 1) / 3,
-            backgroundColor: AppTheme.divider,
-            valueColor: const AlwaysStoppedAnimation(AppTheme.primaryGreen),
-            minHeight: 3,
+          preferredSize: const Size.fromHeight(28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+                child: Text(
+                  '${l.stepOf} ${_currentStep + 1} ${l.stepOfWord} 3',
+                  style: const TextStyle(fontSize: 12, color: Colors.white70),
+                ),
+              ),
+              LinearProgressIndicator(
+                value: (_currentStep + 1) / 3,
+                backgroundColor: AppTheme.divider,
+                valueColor: const AlwaysStoppedAnimation(AppTheme.primaryGreen),
+                minHeight: 3,
+              ),
+            ],
           ),
         ),
       ),
@@ -145,14 +176,9 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen> {
             ),
             _StepLocation(
               mtaaCtrl: _mtaaCtrl,
-              wardCtrl: _wardCtrl,
-              selectedRegion: _selectedRegion,
-              selectedDistrict: _selectedDistrict,
-              regions: _regions,
-              onRegionChange: (v) =>
-                  setState(() => _selectedRegion = v),
-              onDistrictChange: (v) =>
-                  setState(() => _selectedDistrict = v),
+              selectedWard: _selectedWard,
+              wards: TanzaniaLocations.kinondoniWards,
+              onWardChange: (v) => setState(() => _selectedWard = v),
               l: l,
             ),
           ],
@@ -188,7 +214,13 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen> {
                 onPressed: _isSubmitting
                     ? null
                     : () {
-                        if (_currentStep < 2) {
+                        if (_currentStep == 0) {
+                          if (_category == null) {
+                            _showSnack(l.selectCategory);
+                            return;
+                          }
+                          setState(() => _currentStep++);
+                        } else if (_currentStep < 2) {
                           setState(() => _currentStep++);
                         } else {
                           _submit();
@@ -411,7 +443,21 @@ class _StepDetails extends StatelessWidget {
 
           // Photo attachment placeholder
           OutlinedButton.icon(
-            onPressed: () {},
+            onPressed: () => showDialog(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: Text(l.addPhoto),
+                content: Text(l.isSwahili
+                    ? 'Kipengele hiki kitaongezwa hivi karibuni.'
+                    : 'Photo attachments will be available in a future update.'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: Text(l.close),
+                  ),
+                ],
+              ),
+            ),
             icon: const Icon(Icons.attach_file_outlined),
             label: Text(l.addPhoto),
             style: OutlinedButton.styleFrom(
@@ -486,7 +532,7 @@ class _OptionSwitch extends StatelessWidget {
         secondary: Icon(icon, color: value ? activeColor : AppTheme.textSecondary),
         value: value,
         onChanged: onChanged,
-        activeColor: activeColor,
+        activeThumbColor: activeColor,
         dense: true,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
@@ -496,24 +542,49 @@ class _OptionSwitch extends StatelessWidget {
 
 class _StepLocation extends StatelessWidget {
   final TextEditingController mtaaCtrl;
-  final TextEditingController wardCtrl;
-  final String? selectedRegion;
-  final String? selectedDistrict;
-  final List<String> regions;
-  final void Function(String?) onRegionChange;
-  final void Function(String?) onDistrictChange;
+  final String? selectedWard;
+  final List<String> wards;
+  final void Function(String?) onWardChange;
   final AppLocalizations l;
 
   const _StepLocation({
     required this.mtaaCtrl,
-    required this.wardCtrl,
-    required this.selectedRegion,
-    required this.selectedDistrict,
-    required this.regions,
-    required this.onRegionChange,
-    required this.onDistrictChange,
+    required this.selectedWard,
+    required this.wards,
+    required this.onWardChange,
     required this.l,
   });
+
+  Widget _lockedField(BuildContext context, String label, String value) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceVariant,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.divider),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.lock_outline_rounded,
+              size: 18, color: AppTheme.textSecondary),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label,
+                  style: const TextStyle(
+                      fontSize: 11, color: AppTheme.textSecondary)),
+              const SizedBox(height: 2),
+              Text(value,
+                  style: const TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.w600)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -536,10 +607,33 @@ class _StepLocation extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // Escalation levels visual
           _LocationHierarchyHint(l: l),
           const SizedBox(height: 20),
 
+          // Fixed region — locked
+          _lockedField(context, l.region, 'Dar es Salaam'),
+          const SizedBox(height: 12),
+
+          // Fixed district — locked
+          _lockedField(context, l.district, 'Kinondoni'),
+          const SizedBox(height: 12),
+
+          // Ward — dropdown
+          DropdownButtonFormField<String>(
+            initialValue: selectedWard,
+            decoration: InputDecoration(
+              labelText: l.ward,
+              prefixIcon: const Icon(Icons.map_outlined),
+            ),
+            items: wards
+                .map((w) => DropdownMenuItem(value: w, child: Text(w)))
+                .toList(),
+            onChanged: onWardChange,
+            validator: (v) => v == null ? l.fieldRequired : null,
+          ),
+          const SizedBox(height: 12),
+
+          // Mtaa — free text
           TextFormField(
             controller: mtaaCtrl,
             decoration: InputDecoration(
@@ -548,36 +642,6 @@ class _StepLocation extends StatelessWidget {
               prefixIcon: const Icon(Icons.home_outlined),
             ),
             validator: (v) => v?.isEmpty == true ? l.fieldRequired : null,
-          ),
-          const SizedBox(height: 12),
-          TextFormField(
-            controller: wardCtrl,
-            decoration: InputDecoration(
-              labelText: l.ward,
-              prefixIcon: const Icon(Icons.map_outlined),
-            ),
-            validator: (v) => v?.isEmpty == true ? l.fieldRequired : null,
-          ),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            value: selectedRegion,
-            decoration: InputDecoration(
-              labelText: l.region,
-              prefixIcon: const Icon(Icons.location_city_outlined),
-            ),
-            items: regions
-                .map((r) => DropdownMenuItem(value: r, child: Text(r)))
-                .toList(),
-            onChanged: onRegionChange,
-            validator: (v) => v == null ? l.fieldRequired : null,
-          ),
-          const SizedBox(height: 12),
-          TextFormField(
-            decoration: InputDecoration(
-              labelText: l.district,
-              prefixIcon: const Icon(Icons.account_balance_outlined),
-            ),
-            onChanged: (v) => onDistrictChange(v.isEmpty ? null : v),
           ),
         ],
       ),
@@ -674,7 +738,7 @@ class _SuccessScreen extends StatelessWidget {
               Container(
                 width: 96,
                 height: 96,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: AppTheme.primaryGreenLight,
                   shape: BoxShape.circle,
                 ),
@@ -737,8 +801,7 @@ class _SuccessScreen extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () => Navigator.of(context)
-                      .popUntil((route) => route.isFirst),
+                  onPressed: () => Navigator.of(context).pop(),
                   child: Text(l.done),
                 ),
               ),

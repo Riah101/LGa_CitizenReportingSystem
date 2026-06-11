@@ -6,8 +6,45 @@ import '../../models/complaint.dart';
 import '../../providers/complaint_provider.dart';
 import '../../utils/app_theme.dart';
 
-class NotificationsScreen extends StatelessWidget {
+class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
+
+  @override
+  State<NotificationsScreen> createState() => _NotificationsScreenState();
+}
+
+class _NotificationsScreenState extends State<NotificationsScreen> {
+  bool _cleared = false;
+
+  Future<void> _confirmClearAll(AppLocalizations l) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.isSwahili ? 'Futa Zote' : 'Clear All'),
+        content: Text(l.clearAllNotifications),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l.cancel),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l.confirm),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      setState(() => _cleared = true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l.notificationsCleared),
+          backgroundColor: AppTheme.primaryGreen,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -15,19 +52,20 @@ class NotificationsScreen extends StatelessWidget {
     final complaints = context.watch<ComplaintProvider>().complaints;
 
     // Generate synthetic notifications from complaint activity
-    final notifications = _buildNotifications(complaints, l);
+    final notifications = _cleared ? <_AppNotification>[] : _buildNotifications(complaints, l);
 
     return Scaffold(
       appBar: AppBar(
         title: Text(l.notifications),
         actions: [
-          TextButton(
-            onPressed: () {},
-            child: Text(
-              l.isSwahili ? 'Futa Zote' : 'Clear All',
-              style: const TextStyle(color: AppTheme.primaryGreen),
+          if (!_cleared)
+            TextButton(
+              onPressed: () => _confirmClearAll(l),
+              child: Text(
+                l.isSwahili ? 'Futa Zote' : 'Clear All',
+                style: const TextStyle(color: AppTheme.primaryGreen),
+              ),
             ),
-          ),
         ],
       ),
       body: notifications.isEmpty
@@ -35,7 +73,7 @@ class NotificationsScreen extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.notifications_none_rounded,
+                  const Icon(Icons.notifications_none_rounded,
                       size: 56, color: AppTheme.textSecondary),
                   const SizedBox(height: 12),
                   Text(

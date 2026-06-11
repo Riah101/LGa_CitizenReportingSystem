@@ -86,20 +86,24 @@ class User {
       };
 
   factory User.fromJson(Map<String, dynamic> json) => User(
-        id: json['id'],
-        name: json['name'],
-        phone: json['phone'],
+        id: json['id']?.toString() ?? '',
+        // Backend sends full_name; locally stored data uses name
+        name: (json['full_name'] ?? json['name'] ?? '').toString(),
+        phone: json['phone'] ?? '',
         email: json['email'],
         role: UserRole.values.byName(json['role'] ?? 'citizen'),
-        nationalId: json['nationalId'],
+        nationalId: json['national_id'] ?? json['nationalId'],
         mtaa: json['mtaa'],
         ward: json['ward'],
         district: json['district'],
         region: json['region'],
-        createdAt: DateTime.parse(json['createdAt']),
-        isVerified: json['isVerified'] ?? false,
-        profilePhoto: json['profilePhoto'],
-        totalComplaints: json['totalComplaints'] ?? 0,
-        resolvedComplaints: json['resolvedComplaints'] ?? 0,
+        createdAt: DateTime.tryParse(
+                json['created_at'] ?? json['createdAt'] ?? '') ??
+            DateTime.now(),
+        isVerified: json['is_verified'] ?? json['isVerified'] ?? false,
+        profilePhoto: json['profile_photo'] ?? json['profilePhoto'],
+        totalComplaints: json['total_complaints'] ?? json['totalComplaints'] ?? 0,
+        resolvedComplaints:
+            json['resolved_complaints'] ?? json['resolvedComplaints'] ?? 0,
       );
 }

@@ -1,5 +1,6 @@
 /// Tanzania Administrative Hierarchy Data
 /// Mkoa → Wilaya → Kata → Mtaa
+library;
 
 class TanzaniaLocations {
   static const Map<String, Map<String, List<String>>> hierarchy = {
@@ -79,4 +80,8 @@ class TanzaniaLocations {
 
   static List<String> wardsForDistrict(String region, String district) =>
       hierarchy[region]?[district] ?? [];
+
+  /// All wards in Kinondoni district — the only scope of this app.
+  static List<String> get kinondoniWards =>
+      hierarchy['Dar es Salaam']!['Kinondoni']!;
 }

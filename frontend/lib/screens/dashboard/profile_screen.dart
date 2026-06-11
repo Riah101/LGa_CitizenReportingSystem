@@ -195,7 +195,7 @@ class ProfileScreen extends StatelessWidget {
                   trailing: Switch(
                     value: themeProvider.themeMode == ThemeMode.dark,
                     onChanged: (_) => themeProvider.toggleTheme(),
-                    activeColor: AppTheme.primaryGreen,
+                    activeThumbColor: AppTheme.primaryGreen,
                   ),
                 ),
                 _SettingTile(
@@ -203,7 +203,7 @@ class ProfileScreen extends StatelessWidget {
                   title: l.notifications2,
                   trailing: const Icon(Icons.chevron_right,
                       color: AppTheme.textSecondary),
-                  onTap: () {},
+                  onTap: () => _showNotificationSettings(context, l),
                 ),
               ],
             ),
@@ -222,14 +222,14 @@ class ProfileScreen extends StatelessWidget {
                   title: l.privacyPolicy,
                   trailing: const Icon(Icons.chevron_right,
                       color: AppTheme.textSecondary),
-                  onTap: () {},
+                  onTap: () => _showPrivacyPolicy(context, l),
                 ),
                 _SettingTile(
                   icon: Icons.support_agent_outlined,
                   title: l.contactSupport,
                   trailing: const Icon(Icons.chevron_right,
                       color: AppTheme.textSecondary),
-                  onTap: () {},
+                  onTap: () => _showContactSupport(context, l),
                 ),
               ],
             ),
@@ -285,6 +285,116 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
+  void _showNotificationSettings(BuildContext context, AppLocalizations l) {
+    bool enabled = true;
+    bool escalation = true;
+    bool resolved = true;
+    bool comments = true;
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) => AlertDialog(
+          title: Text(l.notificationSettings),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SwitchListTile(
+                title: Text(l.notificationsEnabled),
+                value: enabled,
+                onChanged: (v) => setS(() => enabled = v),
+                activeThumbColor: AppTheme.primaryGreen,
+                dense: true,
+              ),
+              if (enabled) ...[
+                SwitchListTile(
+                  title: Text(l.notificationsEscalation),
+                  value: escalation,
+                  onChanged: (v) => setS(() => escalation = v),
+                  activeThumbColor: AppTheme.primaryGreen,
+                  dense: true,
+                ),
+                SwitchListTile(
+                  title: Text(l.notificationsResolved),
+                  value: resolved,
+                  onChanged: (v) => setS(() => resolved = v),
+                  activeThumbColor: AppTheme.primaryGreen,
+                  dense: true,
+                ),
+                SwitchListTile(
+                  title: Text(l.notificationsComments),
+                  value: comments,
+                  onChanged: (v) => setS(() => comments = v),
+                  activeThumbColor: AppTheme.primaryGreen,
+                  dense: true,
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(l.done),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showPrivacyPolicy(BuildContext context, AppLocalizations l) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.privacyPolicyTitle),
+        content: SingleChildScrollView(child: Text(l.privacyPolicyBody)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(l.close),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showContactSupport(BuildContext context, AppLocalizations l) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.contactSupportTitle),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.phone, color: AppTheme.primaryGreen),
+              title: Text(l.contactPhone),
+              subtitle: const Text('+255 800 000 000'),
+              dense: true,
+            ),
+            ListTile(
+              leading: const Icon(Icons.email_outlined, color: AppTheme.primaryGreen),
+              title: Text(l.contactEmail),
+              subtitle: const Text('support@sautiyaraia.go.tz'),
+              dense: true,
+            ),
+            ListTile(
+              leading: const Icon(Icons.access_time_outlined, color: AppTheme.primaryGreen),
+              title: Text(l.isSwahili ? 'Masaa ya Kazi' : 'Office Hours'),
+              subtitle: Text(l.contactHours),
+              dense: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(l.close),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _confirmLogout(
       BuildContext context, AuthProvider auth, AppLocalizations l) {
     showDialog(
@@ -300,6 +410,7 @@ class ProfileScreen extends StatelessWidget {
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
+              context.read<ComplaintProvider>().clearComplaints();
               await auth.logout();
               if (context.mounted) {
                 Navigator.of(context).pushAndRemoveUntil(

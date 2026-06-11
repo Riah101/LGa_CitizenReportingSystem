@@ -60,7 +60,9 @@ class _SplashScreenState extends State<SplashScreen>
     final complaintProvider = context.read<ComplaintProvider>();
 
     await authProvider.loadUser();
-    await complaintProvider.loadComplaints();
+    if (authProvider.isAuthenticated) {
+      await complaintProvider.loadForUser(authProvider.currentUser!.id);
+    }
 
     if (!mounted) return;
 

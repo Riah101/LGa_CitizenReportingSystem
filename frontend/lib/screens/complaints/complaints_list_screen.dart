@@ -171,7 +171,7 @@ class _ComplaintTab extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.inbox_outlined,
+            const Icon(Icons.inbox_outlined,
                 size: 56, color: AppTheme.textSecondary),
             const SizedBox(height: 12),
             Text(l.noComplaintsYet,

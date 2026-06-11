@@ -155,13 +155,13 @@ class ComplaintCard extends StatelessWidget {
                   // Footer
                   Row(
                     children: [
-                      Icon(Icons.thumb_up_outlined,
+                      const Icon(Icons.thumb_up_outlined,
                           size: 13, color: AppTheme.textSecondary),
                       const SizedBox(width: 3),
                       Text('${complaint.upvotes}',
                           style: Theme.of(context).textTheme.bodySmall),
                       const SizedBox(width: 12),
-                      Icon(Icons.comment_outlined,
+                      const Icon(Icons.comment_outlined,
                           size: 13, color: AppTheme.textSecondary),
                       const SizedBox(width: 3),
                       Text('${complaint.comments.length}',
@@ -170,7 +170,7 @@ class ComplaintCard extends StatelessWidget {
                         const SizedBox(width: 12),
                         const Icon(Icons.priority_high,
                             size: 13, color: AppTheme.statusEscalated),
-                        Text(
+                        const Text(
                           'URGENT',
                           style: TextStyle(
                               fontSize: 10,

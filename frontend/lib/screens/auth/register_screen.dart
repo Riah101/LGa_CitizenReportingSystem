@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../utils/app_theme.dart';
+import '../../utils/tanzania_locations.dart';
 import '../dashboard/home_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -21,32 +22,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _confirmPasswordCtrl = TextEditingController();
   final _nationalIdCtrl = TextEditingController();
   final _mtaaCtrl = TextEditingController();
-  final _wardCtrl = TextEditingController();
-  String? _selectedDistrict;
-  String? _selectedRegion;
+  String? _selectedWard;
 
   bool _obscurePassword = true;
+  bool _obscureConfirm = true;
   int _currentStep = 0;
-
-  static const regions = [
-    'Dar es Salaam',
-    'Arusha',
-    'Mwanza',
-    'Dodoma',
-    'Morogoro',
-    'Tanga',
-    'Kilimanjaro',
-    'Mbeya',
-    'Zanzibar',
-    'Pemba',
-  ];
-
-  static const districts = {
-    'Dar es Salaam': ['Ilala', 'Kinondoni', 'Temeke', 'Ubungo', 'Kigamboni'],
-    'Arusha': ['Arusha City', 'Arusha Rural', 'Monduli', 'Arumeru'],
-    'Mwanza': ['Nyamagana', 'Ilemela', 'Magu', 'Kwimba'],
-    'Dodoma': ['Dodoma Urban', 'Dodoma Rural', 'Kongwa', 'Chamwino'],
-  };
 
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
@@ -57,9 +37,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
       password: _passwordCtrl.text,
       nationalId: _nationalIdCtrl.text.isEmpty ? null : _nationalIdCtrl.text,
       mtaa: _mtaaCtrl.text.isEmpty ? null : _mtaaCtrl.text,
-      ward: _wardCtrl.text.isEmpty ? null : _wardCtrl.text,
-      district: _selectedDistrict,
-      region: _selectedRegion,
+      ward: _selectedWard,
+      district: 'Kinondoni',
+      region: 'Dar es Salaam',
     );
     if (ok && mounted) {
       Navigator.of(context).pushReplacement(
@@ -82,7 +62,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
         child: Stepper(
           currentStep: _currentStep,
           onStepContinue: () {
-            if (_currentStep < 2) {
+            // Validate only the fields relevant to the current step
+            if (_currentStep == 0) {
+              if (_nameCtrl.text.trim().isEmpty || _phoneCtrl.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(AppLocalizations.of(context).fieldRequired),
+                    backgroundColor: Colors.red.shade700,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+                return;
+              }
+              setState(() => _currentStep++);
+            } else if (_currentStep == 1) {
               setState(() => _currentStep++);
             } else {
               _register();
@@ -164,49 +157,34 @@ class _RegisterScreenState extends State<RegisterScreen> {
               isActive: _currentStep >= 1,
               content: Column(
                 children: [
-                  TextFormField(
-                    controller: _mtaaCtrl,
-                    decoration: InputDecoration(
-                      labelText: l.mtaa,
-                      prefixIcon: const Icon(Icons.location_on_outlined),
-                      hintText: l.mtaaHint,
-                    ),
-                  ),
+                  // Fixed region
+                  _LockedField(label: l.region, value: 'Dar es Salaam'),
                   const SizedBox(height: 12),
-                  TextFormField(
-                    controller: _wardCtrl,
+                  // Fixed district
+                  _LockedField(label: l.district, value: 'Kinondoni'),
+                  const SizedBox(height: 12),
+                  // Ward dropdown
+                  DropdownButtonFormField<String>(
+                    initialValue: _selectedWard,
                     decoration: InputDecoration(
                       labelText: l.ward,
                       prefixIcon: const Icon(Icons.map_outlined),
                     ),
+                    items: TanzaniaLocations.kinondoniWards
+                        .map((w) =>
+                            DropdownMenuItem(value: w, child: Text(w)))
+                        .toList(),
+                    onChanged: (v) => setState(() => _selectedWard = v),
                   ),
                   const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    value: _selectedRegion,
+                  // Mtaa free text
+                  TextFormField(
+                    controller: _mtaaCtrl,
                     decoration: InputDecoration(
-                      labelText: l.region,
-                      prefixIcon: const Icon(Icons.location_city_outlined),
+                      labelText: l.mtaa,
+                      prefixIcon: const Icon(Icons.home_outlined),
+                      hintText: l.mtaaHint,
                     ),
-                    items: regions
-                        .map((r) =>
-                            DropdownMenuItem(value: r, child: Text(r)))
-                        .toList(),
-                    onChanged: (v) =>
-                        setState(() => _selectedRegion = v),
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    value: _selectedDistrict,
-                    decoration: InputDecoration(
-                      labelText: l.district,
-                      prefixIcon: const Icon(Icons.account_balance_outlined),
-                    ),
-                    items: (districts[_selectedRegion] ?? [])
-                        .map((d) =>
-                            DropdownMenuItem(value: d, child: Text(d)))
-                        .toList(),
-                    onChanged: (v) =>
-                        setState(() => _selectedDistrict = v),
                   ),
                 ],
               ),
@@ -241,14 +219,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: _confirmPasswordCtrl,
-                    obscureText: _obscurePassword,
+                    obscureText: _obscureConfirm,
                     decoration: InputDecoration(
                       labelText: l.confirmPassword,
                       prefixIcon: const Icon(Icons.lock_outline),
+                      suffixIcon: IconButton(
+                        icon: Icon(_obscureConfirm
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined),
+                        onPressed: () =>
+                            setState(() => _obscureConfirm = !_obscureConfirm),
+                      ),
                     ),
                     validator: (v) {
-                      if (v != _passwordCtrl.text)
+                      if (v != _passwordCtrl.text) {
                         return l.passwordsDoNotMatch;
+                      }
                       return null;
                     },
                   ),
@@ -257,6 +243,44 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _LockedField extends StatelessWidget {
+  final String label;
+  final String value;
+  const _LockedField({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceVariant,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.divider),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.lock_outline_rounded,
+              size: 18, color: AppTheme.textSecondary),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label,
+                  style: const TextStyle(
+                      fontSize: 11, color: AppTheme.textSecondary)),
+              const SizedBox(height: 2),
+              Text(value,
+                  style: const TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.w600)),
+            ],
+          ),
+        ],
       ),
     );
   }

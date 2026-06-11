@@ -13,6 +13,7 @@
 ///   Ward    → District : 14 days of inaction
 ///   District→ Region   : 21 days of inaction
 ///   Region  → National : 30 days of inaction
+library;
 
 class EscalationService {
   /// Returns a human-readable escalation schedule description

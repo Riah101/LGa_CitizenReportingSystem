@@ -10,9 +10,11 @@ import '../../widgets/complaint_card.dart';
 import '../../widgets/escalation_timeline.dart';
 import '../../widgets/stat_card.dart';
 import '../complaints/complaint_detail_screen.dart';
+import 'notifications_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
-  const DashboardScreen({super.key});
+  final VoidCallback? onViewAll;
+  const DashboardScreen({super.key, this.onViewAll});
 
   @override
   Widget build(BuildContext context) {
@@ -84,17 +86,25 @@ class DashboardScreen extends StatelessWidget {
                                   ),
                                 ],
                               ),
-                              Container(
-                                width: 44,
-                                height: 44,
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(12),
+                              GestureDetector(
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const NotificationsScreen(),
+                                  ),
                                 ),
-                                child: const Icon(
-                                  Icons.notifications_outlined,
-                                  color: Colors.white,
-                                  size: 22,
+                                child: Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Icon(
+                                    Icons.notifications_outlined,
+                                    color: Colors.white,
+                                    size: 22,
+                                  ),
                                 ),
                               ),
                             ],
@@ -193,7 +203,7 @@ class DashboardScreen extends StatelessWidget {
                         Text(l.recentComplaints,
                             style: Theme.of(context).textTheme.titleLarge),
                         TextButton(
-                          onPressed: () {},
+                          onPressed: onViewAll,
                           child: Text(l.viewAll),
                         ),
                       ],
@@ -285,7 +295,7 @@ class _EscalationOverview extends StatelessWidget {
                   l.isSwahili
                       ? 'Yanakaribia muda wa kupandishwa'
                       : 'Will escalate to next level soon',
-                  style: TextStyle(
+                  style: const TextStyle(
                       fontSize: 12, color: AppTheme.textSecondary),
                 ),
               ],
@@ -311,7 +321,7 @@ class _EmptyState extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Icon(Icons.inbox_outlined, size: 48, color: AppTheme.textSecondary),
+          const Icon(Icons.inbox_outlined, size: 48, color: AppTheme.textSecondary),
           const SizedBox(height: 12),
           Text(l.noComplaintsYet,
               style: Theme.of(context).textTheme.titleMedium),

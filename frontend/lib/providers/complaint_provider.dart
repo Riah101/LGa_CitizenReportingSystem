@@ -9,6 +9,7 @@ class ComplaintProvider extends ChangeNotifier {
   List<Complaint> _complaints = [];
   bool _isLoading = false;
   String? _error;
+  String? _userId;
 
   List<Complaint> get complaints => _complaints;
   bool get isLoading => _isLoading;
@@ -49,30 +50,41 @@ class ComplaintProvider extends ChangeNotifier {
     return result;
   }
 
-  Future<void> loadComplaints() async {
+  /// Loads complaints for a specific user from their private storage key.
+  /// New users start with an empty list. Call this after login/register.
+  Future<void> loadForUser(String userId) async {
+    _userId = userId;
+    _complaints = [];
+    notifyListeners();
+
     _isLoading = true;
     notifyListeners();
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      final data = prefs.getString('complaints');
+      final key = 'complaints_$userId';
+      final data = prefs.getString(key);
+      debugPrint('📂 loadForUser: userId=$userId, key=$key, found=${data != null}, length=${data?.length ?? 0}');
       if (data != null) {
         final List list = jsonDecode(data);
         _complaints = list.map((e) => Complaint.fromJson(e)).toList();
-      } else {
-        // Load demo data
-        _complaints = _generateDemoComplaints();
-        await _saveComplaints();
+        debugPrint('📂 loadForUser: loaded ${_complaints.length} complaints');
+        await checkAndEscalate();
       }
-      
-      // Run auto-escalation check
-      await checkAndEscalate();
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('❌ loadForUser error: $e\n$stack');
       _error = e.toString();
-      _complaints = _generateDemoComplaints();
     }
 
     _isLoading = false;
+    notifyListeners();
+  }
+
+  /// Clears in-memory complaints. Call this on logout so the next
+  /// user starts fresh until loadForUser is called.
+  void clearComplaints() {
+    _complaints = [];
+    _userId = null;
     notifyListeners();
   }
 
@@ -91,6 +103,12 @@ class ComplaintProvider extends ChangeNotifier {
     bool isUrgent = false,
     List<String>? attachments,
   }) async {
+    // Always keep _userId in sync with the submitting citizen so
+    // _saveComplaints() writes to the right key even if loadForUser
+    // hasn't been called yet (e.g. first-frame race).
+    _userId = citizenId;
+    debugPrint('📝 submitComplaint: citizenId=$citizenId, _userId=$_userId');
+
     final complaint = Complaint(
       id: _generateId(),
       citizenId: citizenId,
@@ -201,9 +219,15 @@ class ComplaintProvider extends ChangeNotifier {
   }
 
   Future<void> _saveComplaints() async {
+    if (_userId == null) {
+      debugPrint('❌ _saveComplaints: _userId is null, save skipped');
+      return;
+    }
+    final key = 'complaints_$_userId';
+    debugPrint('💾 _saveComplaints: key=$key, count=${_complaints.length}');
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(
-      'complaints',
+      key,
       jsonEncode(_complaints.map((c) => c.toJson()).toList()),
     );
   }
@@ -215,134 +239,6 @@ class ComplaintProvider extends ChangeNotifier {
   String _generateTrackingCode() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     final random = Random();
-    return 'SR' +
-        List.generate(6, (_) => chars[random.nextInt(chars.length)]).join();
-  }
-
-  List<Complaint> _generateDemoComplaints() {
-    final now = DateTime.now();
-    return [
-      Complaint(
-        id: '1',
-        citizenId: 'demo_user',
-        citizenName: 'Amina Hassan',
-        citizenPhone: '+255712345678',
-        title: 'Barabara Imeharibiwa - Broken Road',
-        description:
-            'Barabara ya Uhuru Street ina mashimo makubwa sana ambayo yanasababisha ajali nyingi. The road has large potholes causing accidents daily.',
-        category: ComplaintCategory.infrastructure,
-        status: ComplaintStatus.pending,
-        currentLevel: GovernmentLevel.mtaa,
-        mtaa: 'Kariakoo',
-        ward: 'Kariakoo',
-        district: 'Ilala',
-        region: 'Dar es Salaam',
-        submittedAt: now.subtract(const Duration(days: 3)),
-        updatedAt: now.subtract(const Duration(days: 3)),
-        trackingCode: 'SR4K9X2M',
-        upvotes: 24,
-        isUrgent: false,
-        priorityScore: 24,
-      ),
-      Complaint(
-        id: '2',
-        citizenId: 'demo_user2',
-        citizenName: 'John Makundi',
-        citizenPhone: '+255787654321',
-        title: 'Maji Safi Hayapo - No Clean Water',
-        description:
-            'Kata yetu haina maji safi kwa wiki mbili. Our ward has had no clean water supply for two weeks now.',
-        category: ComplaintCategory.water,
-        status: ComplaintStatus.escalated,
-        currentLevel: GovernmentLevel.ward,
-        mtaa: 'Mwananyamala',
-        ward: 'Mwananyamala',
-        district: 'Kinondoni',
-        region: 'Dar es Salaam',
-        submittedAt: now.subtract(const Duration(days: 15)),
-        updatedAt: now.subtract(const Duration(days: 8)),
-        escalationHistory: [
-          EscalationHistory(
-            fromLevel: GovernmentLevel.mtaa,
-            toLevel: GovernmentLevel.ward,
-            escalatedAt: now.subtract(const Duration(days: 8)),
-            reason: 'Auto-escalated: No action taken within 7 days at Mtaa level.',
-          ),
-        ],
-        trackingCode: 'SR7B3N1P',
-        upvotes: 87,
-        isUrgent: true,
-        priorityScore: 97,
-      ),
-      Complaint(
-        id: '3',
-        citizenId: 'demo_user3',
-        citizenName: 'Fatuma Suleiman',
-        citizenPhone: '+255765432198',
-        title: 'Hospitali Haina Dawa - Hospital Lacks Medicine',
-        description:
-            'Hospitali ya Wilaya haina dawa za msingi. The district hospital has run out of essential medicines.',
-        category: ComplaintCategory.health,
-        status: ComplaintStatus.inProgress,
-        currentLevel: GovernmentLevel.district,
-        mtaa: 'Temeke',
-        ward: 'Temeke',
-        district: 'Temeke',
-        region: 'Dar es Salaam',
-        submittedAt: now.subtract(const Duration(days: 45)),
-        updatedAt: now.subtract(const Duration(days: 5)),
-        escalationHistory: [
-          EscalationHistory(
-            fromLevel: GovernmentLevel.mtaa,
-            toLevel: GovernmentLevel.ward,
-            escalatedAt: now.subtract(const Duration(days: 38)),
-            reason: 'Auto-escalated after 7 days',
-          ),
-          EscalationHistory(
-            fromLevel: GovernmentLevel.ward,
-            toLevel: GovernmentLevel.district,
-            escalatedAt: now.subtract(const Duration(days: 24)),
-            reason: 'Auto-escalated after 14 days',
-          ),
-        ],
-        comments: [
-          Comment(
-            id: 'c1',
-            authorId: 'officer1',
-            authorName: 'DCC Temeke',
-            authorRole: 'District Commissioner',
-            content: 'We have contacted the Ministry of Health. Supply delivery expected within 3 days.',
-            createdAt: now.subtract(const Duration(days: 5)),
-            isOfficial: true,
-          ),
-        ],
-        trackingCode: 'SR2D8F5R',
-        upvotes: 156,
-        isUrgent: true,
-        priorityScore: 166,
-      ),
-      Complaint(
-        id: '4',
-        citizenId: 'demo_user4',
-        citizenName: 'Peter Mwanga',
-        citizenPhone: '+255754321098',
-        title: 'Taa za Mitaani Hazifanyi Kazi',
-        description:
-            'Street lights in our area have been off for a month, creating security concerns at night.',
-        category: ComplaintCategory.electricity,
-        status: ComplaintStatus.resolved,
-        currentLevel: GovernmentLevel.mtaa,
-        mtaa: 'Mikocheni',
-        ward: 'Mikocheni',
-        district: 'Kinondoni',
-        region: 'Dar es Salaam',
-        submittedAt: now.subtract(const Duration(days: 20)),
-        updatedAt: now.subtract(const Duration(days: 2)),
-        resolvedAt: now.subtract(const Duration(days: 2)),
-        trackingCode: 'SR9W1L6T',
-        upvotes: 43,
-        priorityScore: 43,
-      ),
-    ];
+    return 'SR${List.generate(6, (_) => chars[random.nextInt(chars.length)]).join()}';
   }
 }

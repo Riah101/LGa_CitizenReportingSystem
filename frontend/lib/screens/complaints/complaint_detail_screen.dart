@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -42,6 +43,15 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
     await context.read<ComplaintProvider>().addComment(_complaint.id, comment);
     _commentCtrl.clear();
     setState(() {});
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context).commentAdded),
+          backgroundColor: AppTheme.primaryGreen,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   @override
@@ -60,7 +70,16 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.share_outlined),
-            onPressed: () {},
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: complaint.trackingCode));
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(AppLocalizations.of(context).copiedToClipboard),
+                  backgroundColor: AppTheme.primaryGreen,
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -92,8 +111,8 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
                         const Icon(Icons.priority_high,
                             size: 12, color: AppTheme.statusEscalated),
                         const SizedBox(width: 4),
-                        const Text('URGENT',
-                            style: TextStyle(
+                        Text(l.urgentLabel,
+                            style: const TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w700,
                                 color: AppTheme.statusEscalated)),
@@ -112,7 +131,7 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
             // Meta
             Row(
               children: [
-                Icon(Icons.calendar_today_outlined,
+                const Icon(Icons.calendar_today_outlined,
                     size: 14, color: AppTheme.textSecondary),
                 const SizedBox(width: 4),
                 Text(
@@ -120,7 +139,7 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 const SizedBox(width: 16),
-                Icon(Icons.location_on_outlined,
+                const Icon(Icons.location_on_outlined,
                     size: 14, color: AppTheme.textSecondary),
                 const SizedBox(width: 4),
                 Expanded(
@@ -135,17 +154,17 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
             const SizedBox(height: 4),
             Row(
               children: [
-                Icon(Icons.category_outlined,
+                const Icon(Icons.category_outlined,
                     size: 14, color: AppTheme.textSecondary),
                 const SizedBox(width: 4),
                 Text(complaint.categoryLabel,
                     style: Theme.of(context).textTheme.bodySmall),
                 const SizedBox(width: 16),
-                Icon(Icons.person_outline,
+                const Icon(Icons.person_outline,
                     size: 14, color: AppTheme.textSecondary),
                 const SizedBox(width: 4),
                 Text(
-                  complaint.isAnonymous ? 'Anonymous' : complaint.citizenName,
+                  complaint.isAnonymous ? l.anonymousLabel : complaint.citizenName,
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],
@@ -166,7 +185,7 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
                       size: 16, color: AppTheme.textSecondary),
                   const SizedBox(width: 6),
                   Text(
-                    l.trackingCode + ': ',
+                    '${l.trackingCode}: ',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                   Text(
@@ -361,8 +380,16 @@ class _UpvoteSection extends StatelessWidget {
     return Row(
       children: [
         InkWell(
-          onTap: () =>
-              context.read<ComplaintProvider>().upvoteComplaint(complaint.id),
+          onTap: () {
+              context.read<ComplaintProvider>().upvoteComplaint(complaint.id);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(l.upvoteAdded),
+                  backgroundColor: AppTheme.primaryGreen,
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
           borderRadius: BorderRadius.circular(8),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),

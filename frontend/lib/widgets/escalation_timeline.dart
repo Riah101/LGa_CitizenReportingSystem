@@ -16,7 +16,7 @@ class EscalationTimeline extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final levels = GovernmentLevel.values;
+    const levels = GovernmentLevel.values;
     final currentIndex = levels.indexOf(complaint.currentLevel);
 
     return Column(

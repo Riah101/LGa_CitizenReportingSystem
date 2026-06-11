@@ -200,17 +200,36 @@ class _OfficerDashboardScreenState extends State<OfficerDashboardScreen> {
                                     ComplaintDetailScreen(complaint: c),
                               ),
                             ),
-                            onUpdateStatus: (status) =>
-                                context
-                                    .read<ComplaintProvider>()
-                                    .updateStatus(c.id, status),
-                            onEscalate: () => context
-                                .read<ComplaintProvider>()
-                                .manualEscalate(
+                            onMarkInProgress: () => _confirmAction(
+                              title: l.confirmMarkInProgress,
+                              message: '"${c.title}"',
+                              action: () => context
+                                  .read<ComplaintProvider>()
+                                  .updateStatus(c.id, ComplaintStatus.inProgress),
+                              successMessage: l.markedInProgress,
+                            ),
+                            onResolve: () => _confirmAction(
+                              title: l.confirmResolve,
+                              message: '"${c.title}"',
+                              action: () => context
+                                  .read<ComplaintProvider>()
+                                  .updateStatus(c.id, ComplaintStatus.resolved),
+                              successMessage: l.markedResolved,
+                            ),
+                            onEscalate: () => _confirmAction(
+                              title: l.confirmEscalate,
+                              message: '"${c.title}"',
+                              reasonLabel: l.escalateReason,
+                              action: () => context
+                                  .read<ComplaintProvider>()
+                                  .manualEscalate(
                                     c.id,
                                     l.isSwahili
                                         ? 'Imepandishwa na afisa'
-                                        : 'Manually escalated by officer'),
+                                        : 'Manually escalated by officer',
+                                  ),
+                              successMessage: l.escalatedSuccess,
+                            ),
                           ),
                         )),
 
@@ -246,10 +265,116 @@ class _OfficerDashboardScreenState extends State<OfficerDashboardScreen> {
   }
 
   void _showFilterSheet() {
+    final l = AppLocalizations.of(context);
     showModalBottomSheet(
       context: context,
-      builder: (_) => const SizedBox(height: 200),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(l.filterByStatus,
+                    style: Theme.of(ctx).textTheme.titleLarge),
+                TextButton(
+                  onPressed: () {
+                    setState(() => _filterStatus = null);
+                    Navigator.pop(ctx);
+                  },
+                  child: Text(l.clearFilter),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: ComplaintStatus.values.map((s) {
+                final selected = _filterStatus == s;
+                final color = AppTheme.statusColor(s.name
+                    .replaceAllMapped(RegExp(r'[A-Z]'),
+                        (m) => '_${m.group(0)!.toLowerCase()}'));
+                return FilterChip(
+                  label: Text(_statusLabel(s, l)),
+                  selected: selected,
+                  selectedColor: color.withOpacity(0.2),
+                  checkmarkColor: color,
+                  side: BorderSide(color: selected ? color : AppTheme.divider),
+                  onSelected: (_) {
+                    setState(() => _filterStatus = s);
+                    Navigator.pop(ctx);
+                  },
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
     );
+  }
+
+  Future<void> _confirmAction({
+    required String title,
+    required String message,
+    required Future<void> Function() action,
+    required String successMessage,
+    String? reasonLabel,
+  }) async {
+    final l = AppLocalizations.of(context);
+    final reasonCtrl = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(message),
+            if (reasonLabel != null) ...[
+              const SizedBox(height: 12),
+              TextField(
+                controller: reasonCtrl,
+                decoration: InputDecoration(
+                  labelText: reasonLabel,
+                  hintText: l.escalateReasonHint,
+                ),
+                maxLines: 2,
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l.cancel),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l.confirm),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      await action();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(successMessage),
+            backgroundColor: AppTheme.primaryGreen,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 }
 
@@ -297,14 +422,16 @@ class _OfficerComplaintCard extends StatelessWidget {
   final Complaint complaint;
   final AppLocalizations l;
   final VoidCallback onTap;
-  final void Function(ComplaintStatus) onUpdateStatus;
+  final VoidCallback onMarkInProgress;
+  final VoidCallback onResolve;
   final VoidCallback onEscalate;
 
   const _OfficerComplaintCard({
     required this.complaint,
     required this.l,
     required this.onTap,
-    required this.onUpdateStatus,
+    required this.onMarkInProgress,
+    required this.onResolve,
     required this.onEscalate,
   });
 
@@ -319,9 +446,9 @@ class _OfficerComplaintCard extends StatelessWidget {
           Container(
             margin: const EdgeInsets.only(top: 1),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: AppTheme.surfaceVariant,
-              borderRadius: const BorderRadius.only(
+              borderRadius: BorderRadius.only(
                 bottomLeft: Radius.circular(16),
                 bottomRight: Radius.circular(16),
               ),
@@ -334,8 +461,7 @@ class _OfficerComplaintCard extends StatelessWidget {
                       label: l.isSwahili ? 'Shughulikia' : 'Mark In Progress',
                       color: AppTheme.statusInProgress,
                       icon: Icons.play_arrow_rounded,
-                      onTap: () =>
-                          onUpdateStatus(ComplaintStatus.inProgress),
+                      onTap: onMarkInProgress,
                     ),
                   ),
                 if (complaint.status == ComplaintStatus.inProgress) ...[
@@ -344,8 +470,7 @@ class _OfficerComplaintCard extends StatelessWidget {
                       label: l.isSwahili ? 'Suluhisha' : 'Resolve',
                       color: AppTheme.statusResolved,
                       icon: Icons.check_rounded,
-                      onTap: () =>
-                          onUpdateStatus(ComplaintStatus.resolved),
+                      onTap: onResolve,
                     ),
                   ),
                   const SizedBox(width: 8),

@@ -193,6 +193,10 @@ class AppLocalizations {
   String get passwordsDoNotMatch => t('Passwords do not match', 'Manenosiri hayafanani');
   String get somethingWentWrong =>
       t('Something went wrong', 'Kuna hitilafu fulani');
+  String get loginFailed =>
+      t('Login failed. Please check your credentials.', 'Imeshindwa kuingia. Angalia taarifa zako.');
+  String get networkError =>
+      t('Network error. Please check your connection.', 'Hitilafu ya mtandao. Angalia muunganisho wako.');
 
   // ─── Confirmation ─────────────────────────────────────────────────
   String get complaintSubmitted =>
@@ -203,6 +207,7 @@ class AppLocalizations {
   String get saveTrackingCode =>
       t('Save your tracking code:', 'Hifadhi nambari yako ya ufuatiliaji:');
   String get upvotes => t('Upvotes', 'Idhini');
+  String get upvoteAdded => t('Upvote added!', 'Idhini imeongezwa!');
   String get submittedOn => t('Submitted on', 'Iliwasilishwa');
   String get lastUpdated => t('Last updated', 'Ilisasishwa mwisho');
   String get noComplaintsYet =>
@@ -211,6 +216,75 @@ class AppLocalizations {
       'Tap the + button to submit your first complaint',
       'Bonyeza kitufe cha + kuwasilisha lalamiko lako la kwanza');
   String get complaintDetails => t('Complaint Details', 'Maelezo ya Lalamiko');
+
+  // ─── Labels ──────────────────────────────────────────────────────
+  String get urgentLabel => t('URGENT', 'DHARURA');
+  String get anonymousLabel => t('Anonymous', 'Asiyejulikana');
+  String get stepOf => t('Step', 'Hatua');
+  String get stepOfWord => t('of', 'ya');
+
+  // ─── Share / Clipboard ───────────────────────────────────────────
+  String get copiedToClipboard =>
+      t('Tracking code copied!', 'Nambari ya ufuatiliaji imenakiliwa!');
+  String get shareComplaint => t('Share Complaint', 'Shiriki Lalamiko');
+
+  // ─── Officer Actions ─────────────────────────────────────────────
+  String get confirmMarkInProgress =>
+      t('Mark this complaint as In Progress?', 'Weka lalamiko hili kama Linashughulikiwa?');
+  String get confirmResolve =>
+      t('Mark this complaint as Resolved?', 'Weka lalamiko hili kama Imesuluhiwa?');
+  String get confirmEscalate =>
+      t('Escalate this complaint to the next level?', 'Pandisha lalamiko hili hadi ngazi inayofuata?');
+  String get escalateReason => t('Reason for escalation', 'Sababu ya kupandisha');
+  String get escalateReasonHint =>
+      t('Briefly explain why you are escalating...', 'Elezea kwa ufupi sababu ya kupandisha...');
+  String get markedInProgress =>
+      t('Complaint marked as In Progress', 'Lalamiko limewekwa Linashughulikiwa');
+  String get markedResolved =>
+      t('Complaint resolved successfully', 'Lalamiko limesuluhiwa');
+  String get escalatedSuccess =>
+      t('Complaint escalated successfully', 'Lalamiko limepandishwa');
+  String get commentAdded => t('Comment added', 'Maoni yameongezwa');
+  String get filterByStatus => t('Filter by Status', 'Chagua kwa Hali');
+  String get clearFilter => t('Clear Filter', 'Ondoa Chaguo');
+
+  // ─── Profile Settings ─────────────────────────────────────────────
+  String get notificationSettings =>
+      t('Notification Settings', 'Mipangilio ya Arifa');
+  String get notificationsEnabled =>
+      t('Enable Notifications', 'Washa Arifa');
+  String get notificationsEscalation =>
+      t('Escalation Alerts', 'Arifa za Kupandishwa');
+  String get notificationsResolved =>
+      t('Resolution Alerts', 'Arifa za Kusuluhiwa');
+  String get notificationsComments =>
+      t('Comment Notifications', 'Arifa za Maoni');
+  String get privacyPolicyTitle =>
+      t('Privacy Policy', 'Sera ya Faragha');
+  String get privacyPolicyBody => t(
+      'Sauti ya Raia collects your name, phone number, and location to process your complaints. Your data is stored securely and is only shared with relevant government authorities to resolve your complaint. Anonymous complaints do not store your personal information.\n\nYou may request deletion of your data at any time by contacting support.',
+      'Sauti ya Raia inakusanya jina lako, nambari ya simu, na mahali pako ili kushughulikia malalamiko yako. Data yako inahifadhiwa salama na inashirikiwa tu na mamlaka zinazohusika za serikali ili kutatua lalamiko lako. Malalamiko ya siri hayahifadhi taarifa zako za kibinafsi.\n\nUnaweza kuomba kufutwa kwa data yako wakati wowote kwa kuwasiliana na msaada.');
+  String get contactSupportTitle =>
+      t('Contact Support', 'Wasiliana na Msaada');
+  String get contactPhone => t('Phone', 'Simu');
+  String get contactEmail => t('Email', 'Barua Pepe');
+  String get contactHours =>
+      t('Available Mon–Fri, 8am–5pm EAT', 'Inapatikana Jumatatu–Ijumaa, 8asubuhi–5jioni');
+  String get clearAllNotifications =>
+      t('Clear all notifications?', 'Futa arifa zote?');
+  String get notificationsCleared =>
+      t('Notifications cleared', 'Arifa zimefutwa');
+
+  // ─── Forgot Password ─────────────────────────────────────────────
+  String get forgotPasswordTitle =>
+      t('Forgot Password', 'Umesahau Nenosiri');
+  String get forgotPasswordBody => t(
+      'Enter your registered phone number and we will send you a reset code via SMS.',
+      'Weka nambari yako ya simu iliyosajiliwa na tutakutumia nambari ya kubadilisha nenosiri kwa SMS.');
+  String get sendResetCode => t('Send Reset Code', 'Tuma Nambari ya Kubadilisha');
+  String get resetCodeSent => t(
+      'Reset code sent! Check your SMS.',
+      'Nambari ya kubadilisha imetumwa! Angalia SMS yako.');
 }
 
 class _AppLocalizationsDelegate

@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -11,10 +10,12 @@ import '../services/api_service.dart';
 class AuthProvider extends ChangeNotifier {
   User? _currentUser;
   bool _isLoading = false;
+  String? _loginError;
 
   User? get currentUser => _currentUser;
   bool get isLoading => _isLoading;
   bool get isAuthenticated => _currentUser != null;
+  String? get loginError => _loginError;
 
   Future<void> loadUser() async {
     final prefs = await SharedPreferences.getInstance();
@@ -27,32 +28,50 @@ class AuthProvider extends ChangeNotifier {
 
   Future<bool> login(String phone, String password) async {
     _isLoading = true;
+    _loginError = null;
     notifyListeners();
 
     try {
-    final result = await ApiService.login(phone, password);
+      final result = await ApiService.login(phone, password);
 
-    if (result['status'] == 200) {
-      _currentUser = User.fromJson(result['data']['user']);
+      if (result['status'] == 200) {
+        _currentUser = User.fromJson(result['data']['user']);
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('current_user', jsonEncode(result['data']['user']));
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      }
 
+      // Demo mode: if backend is unreachable, create a demo user
+      _loginError = 'Invalid phone or password';
+    } catch (e) {
+      debugPrint('Login error: $e');
+      // Demo mode: backend not running — recover the registered name if available
+      final phoneDigits = phone.replaceAll(RegExp(r'[^0-9]'), '');
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(
-        'current_user',
-        jsonEncode(result['data']['user']),
+      final savedName = prefs.getString('reg_name_$phoneDigits') ?? 'Demo User';
+      final demoUser = User(
+        id: 'user_$phoneDigits',
+        name: savedName,
+        phone: phone,
+        createdAt: DateTime.now(),
+        mtaa: 'Kariakoo',
+        ward: 'Kariakoo',
+        district: 'Ilala',
+        region: 'Dar es Salaam',
       );
-
+      _currentUser = demoUser;
+      await prefs.setString('current_user', jsonEncode(demoUser.toJson()));
       _isLoading = false;
       notifyListeners();
       return true;
     }
-  } catch (e) {
-    debugPrint('Login error: $e');
-  }
 
-  _isLoading = false;
-  notifyListeners();
-  return false;
-}
+    _isLoading = false;
+    notifyListeners();
+    return false;
+  }
 
   Future<bool> register({
     required String name,
@@ -70,7 +89,7 @@ class AuthProvider extends ChangeNotifier {
     await Future.delayed(const Duration(milliseconds: 800));
 
     final newUser = User(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      id: 'user_${phone.replaceAll(RegExp(r'[^0-9]'), '')}',
       name: name,
       phone: phone,
       nationalId: nationalId,
@@ -84,6 +103,9 @@ class AuthProvider extends ChangeNotifier {
     _currentUser = newUser;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('current_user', jsonEncode(newUser.toJson()));
+    // Persist name keyed by phone digits so it survives logout (used by demo fallback)
+    final phoneDigits = phone.replaceAll(RegExp(r'[^0-9]'), '');
+    await prefs.setString('reg_name_$phoneDigits', name);
 
     _isLoading = false;
     notifyListeners();
